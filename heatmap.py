@@ -17,7 +17,6 @@
 # Or use something less sucky like Plotly/Bokeh/Gmaps for actual
 # maps?
 
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,15 +46,15 @@ def make_latlon(df):
     'Latitude Minutes',
     'Latitude Seconds']
 
-    long_list=['Longitude Degrees',
+    lon_list=['Longitude Degrees',
     'Longitude Minutes',
     'Longitude Seconds']
-    lons=dec_degree(df[long_list].values)
-    lats=dec_degree(df[lat_list].values)
-    #exploit that np.nan is not equal to itself to filter out missing.
-    msk=(lons==lons)
-    lons=lons[msk]
-    lats=lats[msk]
+    msk1=df['Latitude Degrees'].astype(str).str.contains(r'[0-9]')
+    lons=df.loc[msk1,lon_list].values.astype(float)
+    lats=df.loc[msk1,lat_list].values.astype(float)
+    msk=(lons[:,1]==lons[:,1])
+    lons=dec_degree(lons[msk])
+    lats=dec_degree(lats[msk])
     return lats,lons
 
 def make_xydict(lats,longs,Nx=1000):
@@ -143,9 +142,9 @@ def make_heatmap_plot(heat,xd,title_str,savename=None):
     #Could just choose round numbers, but meh to that. 
     fmt_4dp= lambda y: list(map(lambda x: '{:.4f}'.format(x),y))
     xticks_bin=np.linspace(0,heat.shape[1],5)
-    xticks_val=np.linspace(xydict['xmin'],xydict['xmax'],5)
+    xticks_val=np.linspace(xd['xmin'],xydict['xmax'],5)
     yticks_bin=np.linspace(0,heat.shape[0],5)
-    yticks_val=np.linspace(xydict['ymax'],xydict['ymin'],5)
+    yticks_val=np.linspace(xd['ymax'],xydict['ymin'],5)
     plt.xticks(xticks_bin,fmt_4dp(xticks_val),rotation='vertical')
     plt.yticks(yticks_bin,fmt_4dp(yticks_val))
     #Labelling
@@ -159,9 +158,10 @@ def make_heatmap_plot(heat,xd,title_str,savename=None):
 
 #Commands to actually run this thing.
 #df_tot is some pandas dataframe with latitude/longitude columns.
-lats,lons=make_latlon(df_tot)
-xd=make_xydict(lats,lons,Nx=2000)
-heat = make_eff_heatmap(lats,lons,xd,sigma_fac=1)
-t1=time.time()
-print('time taken',t1-t0)
-make_heatmap_plot(heat,xd,'Log10-number of ALL accidents from 2012-2015 in Portland Area')    
+def run_heatmap(df):
+    lats,lons=make_latlon(df)
+    xd=make_xydict(lats,lons,Nx=1000)
+    heat = make_eff_heatmap(lats,lons,xd,sigma_fac=1)
+    t1=time.time()
+    print('time taken',t1-t0)
+    make_heatmap_plot(heat,xd,'Log10-number of ALL accidents from 2012-2015 in Portland Area')    
